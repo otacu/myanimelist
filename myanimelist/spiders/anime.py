@@ -12,7 +12,7 @@ class AnimeSpider(scrapy.Spider):
     allowed_domains = ['myanimelist.net']
     # start_urls = [url_prefix.format(i) for i in range(35790, 35791)]
     # start_urls = [url_prefix.format(i) for i in range(1, 40000)]
-    start_urls = [url_prefix.format(i) for i in range(90, 91)]
+    start_urls = [url_prefix.format(i) for i in range(30, 31)]
 
     def parse(self, response):
         # 注意如果有tbody元素直接忽略
@@ -21,6 +21,10 @@ class AnimeSpider(scrapy.Spider):
         item = AnimeItem()
         try:
             item['pic'] = sel.xpath('td[1]/div/div[1]/a/img/@src').extract()[0]
+        except:
+            pass
+        try:
+            item['animeId'] = sel.xpath('td[1]/div/div[3]/input[@id="myinfo_anime_id"]/@value').extract()[0]
         except:
             pass
         try:
@@ -86,79 +90,13 @@ class AnimeSpider(scrapy.Spider):
             item['source'] = ''.join(sourceArray).strip()
         except:
             pass
-        # 角色和声优
-        characterSel = sel.xpath('td[2]/div[1]/table/tr[2]/td[1]/div[1]')
-        characters = []
-        try:
-            leftTableCharacterList = characterSel.xpath('div[1]/table/tr/td[2]/a/text()').extract()
-            for index in range(len(leftTableCharacterList)):
-                animeCharacter = AnimeCharacter()
-                characterName = leftTableCharacterList[index]
-                animeCharacter.setCharacterName(characterName)
-                try:
-                    indexStr = bytes(index + 1)
-                    voiceActor = characterSel.xpath('div[1]/table['+indexStr+']/tr/td[3]/table/tr/td[1]/a/text()').extract()
-                    animeCharacter.setVoiceActor(''.join(voiceActor))
-                except:
-                    pass
-                characters.append(animeCharacter)
-        except:
-            pass
-        try:
-            rightTableCharacterList = characterSel.xpath('div[2]/table/tr/td[2]/a/text()').extract()
-            for index in range(len(rightTableCharacterList)):
-                animeCharacter = AnimeCharacter()
-                characterName = rightTableCharacterList[index]
-                animeCharacter.setCharacterName(characterName)
-                try:
-                    indexStr = bytes(index + 1)
-                    voiceActor = characterSel.xpath('div[2]/table['+indexStr+']/tr/td[3]/table/tr/td[1]/a/text()').extract()
-                    animeCharacter.setVoiceActor(''.join(voiceActor))
-                except:
-                    pass
-                characters.append(animeCharacter)
-        except:
-            pass
-        item['characters'] = characters
-        # 制作人员
-        staffSel = sel.xpath('td[2]/div[1]/table/tr[2]/td[1]/div[2]')
-        staffs = []
-        try:
-            leftTableStaffList = staffSel.xpath('div[1]/table/tr/td[2]/a/text()').extract()
-            for index in range(len(leftTableStaffList)):
-                animeStaff = AnimeStaff()
-                staffName = leftTableStaffList[index]
-                animeStaff.setName(staffName)
-                try:
-                    indexStr = bytes(index + 1)
-                    role = staffSel.xpath('div[1]/table['+indexStr+']/tr/td[2]/div/small/text()').extract()
-                    animeStaff.setRoles(''.join(role))
-                except:
-                    pass
-                staffs.append(animeStaff)
-        except:
-            pass
-        try:
-            rightTableStaffList = staffSel.xpath('div[2]/table/tr/td[2]/a/text()').extract()
-            for index in range(len(rightTableStaffList)):
-                animeStaff = AnimeStaff()
-                staffName = rightTableStaffList[index]
-                animeStaff.setName(staffName)
-                try:
-                    indexStr = bytes(index + 1)
-                    role = staffSel.xpath('div[2]/table['+indexStr+']/tr/td[2]/div/small/text()').extract()
-                    animeStaff.setRoles(''.join(role))
-                except:
-                    pass
-                staffs.append(animeStaff)
-        except:
-            pass
-        item['staffs'] = staffs
         # 主题曲
         themeSongSel = sel.xpath('td[2]/div[1]/table/tr[2]/td[1]/div[3]')
         themeSongs = []
         try:
             openingThemeDetailList = themeSongSel.xpath('div[1]/div/span/text()').extract()
+            openingThemeDetailList2 = themeSongSel.xpath('div[1]/div/div/span/text()').extract()
+            openingThemeDetailList += openingThemeDetailList2
             for openingThemeDetail in openingThemeDetailList:
                 animeThemeSong = AnimeThemeSong()
                 animeThemeSong.setType('op')
@@ -181,6 +119,8 @@ class AnimeSpider(scrapy.Spider):
             pass
         try:
             endingThemeDetailList = themeSongSel.xpath('div[3]/div/span/text()').extract()
+            endingThemeDetailList2 = themeSongSel.xpath('div[3]/div/div/span/text()').extract()
+            endingThemeDetailList += endingThemeDetailList2
             for endingThemeDetail in endingThemeDetailList:
                 animeThemeSong = AnimeThemeSong()
                 animeThemeSong.setType('ed')
@@ -203,6 +143,51 @@ class AnimeSpider(scrapy.Spider):
             pass
         item['themeSongs'] = themeSongs
 
+        # 根据内页地址爬取
+        characters_staff_url = sel.xpath('td[2]/div[1]/div[1]/ul[1]/li[7]/a/@href').extract()[0]
+        yield scrapy.Request(characters_staff_url, meta={'item': item}, callback=self.characters_staff_parse)
+
+    def characters_staff_parse(self, response):
+        # 接收上级已爬取的数据
+        item = response.meta['item']
+        #角色和staff页数据提取
+        sel = response.xpath('//div[@id="content"]/table/tr')
+        characters = []
+        staffs = []
+        try:
+            name_list = sel.xpath('td[2]/div[1]/table/tr/td[2]/a/text()').extract()
+            for index in range(len(name_list)):
+                try:
+                    name = name_list[index]
+                    indexStr = bytes(index + 1)
+                    role = sel.xpath('td[2]/div[1]/table['+indexStr+']/tr/td[2]/div/small/text()').extract()[0]
+                    if role == 'Main' or role == 'Supporting':
+                        animeCharacter = AnimeCharacter()
+                        animeCharacter.setCharacterName(name)
+                        animeCharacter.setType(role)
+                        try:
+                            voice_actor_list = sel.xpath('td[2]/div[1]/table['+indexStr+']/tr/td[3]/table/tr/td/a/text()').extract()
+                            for sub_index in range(len(voice_actor_list)):
+                                voice_actor = voice_actor_list[sub_index]
+                                sub_index_str = bytes(sub_index + 1)
+                                nationality = sel.xpath('td[2]/div[1]/table[' + indexStr + ']/tr/td[3]/table/tr[' + sub_index_str + ']/td/small/text()').extract()[0]
+                                if nationality == 'Japanese':
+                                    animeCharacter.setVoiceActor(voice_actor)
+                                    break
+                        except:
+                            pass
+                        characters.append(animeCharacter)
+                    else:
+                        animeStaff = AnimeStaff()
+                        animeStaff.setName(name)
+                        animeStaff.setRoles(role)
+                        staffs.append(animeStaff)
+                except:
+                    pass
+        except:
+            pass
+        item['characters'] = characters
+        item['staffs'] = staffs
         print(item)
         yield item
 
@@ -210,6 +195,8 @@ class AnimeSpider(scrapy.Spider):
 class AnimeCharacter():
     def setCharacterName(self, characterName):
         self.characterName = characterName
+    def setType(self, type):
+        self.type = type
     def setVoiceActor(self, voiceActor):
         self.voiceActor = voiceActor
 

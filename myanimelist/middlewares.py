@@ -12,6 +12,7 @@ import time
 import random
 from scrapy.downloadermiddlewares.retry import RetryMiddleware
 from scrapy.utils.response import response_status_message
+import logging
 
 
 class MyanimelistSpiderMiddleware(object):
@@ -119,7 +120,7 @@ class IpPoolMiddleware(HttpProxyMiddleware):
         print("current proxy IP: " + thisip)
         request.meta["proxy"] = "http://" + thisip
 
-
+# 加代理ip后的失败重试
 class Process_Proxies(RetryMiddleware):
     def dele_proxy(self, proxy):
         requests.get("http://47.107.154.35:5010/delete/?proxy={}".format(proxy))
@@ -142,3 +143,21 @@ class Process_Proxies(RetryMiddleware):
             print('request error,retrying......')
             time.sleep(random.randint(3, 5))
             return self._retry(request, exception, spider)
+
+
+# 随机延时
+class RandomDelayMiddleware(object):
+    def __init__(self, delay):
+        self.delay = delay
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        delay = crawler.spider.settings.get("RANDOM_DELAY", 10)
+        if not isinstance(delay, int):
+            raise ValueError("RANDOM_DELAY need a int")
+        return cls(delay)
+
+    def process_request(self, request, spider):
+        delay = random.randint(0, self.delay)
+        logging.debug("### random delay: %s s ###" % delay)
+        time.sleep(delay)

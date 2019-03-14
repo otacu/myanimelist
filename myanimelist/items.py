@@ -15,6 +15,7 @@ class MyanimelistItem(scrapy.Item):
 
 
 class AnimeItem(scrapy.Item):
+    animeId = scrapy.Field()
     pic = scrapy.Field()
     enName = scrapy.Field()
     jpName = scrapy.Field()
