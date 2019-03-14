@@ -11,8 +11,13 @@ class AnimeSpider(scrapy.Spider):
     name = 'anime'
     allowed_domains = ['myanimelist.net']
     # start_urls = [url_prefix.format(i) for i in range(35790, 35791)]
-    # start_urls = [url_prefix.format(i) for i in range(1, 40000)]
-    start_urls = [url_prefix.format(i) for i in range(30, 31)]
+    start_urls = [url_prefix.format(i) for i in range(1, 40000)]
+    # start_urls = [url_prefix.format(i) for i in range(4015, 4016)]
+    # start_urls = [url_prefix.format(i) for i in range(1298, 1299)]
+
+    def make_requests_from_url(self, url):
+        self.logger.debug('Try first time')
+        return scrapy.Request(url=url, meta={'download_timeout': 10}, callback=self.parse, dont_filter=False)
 
     def parse(self, response):
         # 注意如果有tbody元素直接忽略
@@ -144,7 +149,13 @@ class AnimeSpider(scrapy.Spider):
         item['themeSongs'] = themeSongs
 
         # 根据内页地址爬取
-        characters_staff_url = sel.xpath('td[2]/div[1]/div[1]/ul[1]/li[7]/a/@href').extract()[0]
+        tab_list = sel.xpath('td[2]/div[1]/div[1]/ul[1]/li/a/text()').extract()
+        characters_staff_url = ''
+        for tab_index in range(len(tab_list)):
+            if tab_list[tab_index] == 'Characters & Staff':
+                tab_index_str = bytes(tab_index + 1)
+                characters_staff_url = sel.xpath('td[2]/div[1]/div[1]/ul[1]/li[' + tab_index_str + ']/a/@href').extract()[0]
+                break
         yield scrapy.Request(characters_staff_url, meta={'item': item}, callback=self.characters_staff_parse)
 
     def characters_staff_parse(self, response):
@@ -165,6 +176,7 @@ class AnimeSpider(scrapy.Spider):
                         animeCharacter = AnimeCharacter()
                         animeCharacter.setCharacterName(name)
                         animeCharacter.setType(role)
+                        animeCharacter.setVoiceActor('')
                         try:
                             voice_actor_list = sel.xpath('td[2]/div[1]/table['+indexStr+']/tr/td[3]/table/tr/td/a/text()').extract()
                             for sub_index in range(len(voice_actor_list)):

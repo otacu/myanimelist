@@ -120,30 +120,6 @@ class IpPoolMiddleware(HttpProxyMiddleware):
         print("current proxy IP: " + thisip)
         request.meta["proxy"] = "http://" + thisip
 
-# 加代理ip后的失败重试
-class Process_Proxies(RetryMiddleware):
-    def dele_proxy(self, proxy):
-        requests.get("http://47.107.154.35:5010/delete/?proxy={}".format(proxy))
-
-    def process_response(self, request, response, spider):
-        if request.meta.get('dont_retry', False):
-            return response
-        # if response.status in self.retry_http_codes:
-        if response.status != 200:
-            reason = response_status_message(response.status)
-            self.dele_proxy(request.meta.get('proxy', False))
-            print('request fail,retrying......')
-            time.sleep(random.randint(3, 5))
-            return self._retry(request, reason, spider) or response
-        return response
-
-    def process_exception(self, request, exception, spider):
-        if isinstance(exception, self.EXCEPTIONS_TO_RETRY) and not request.meta.get('dont_retry', False):
-            self.dele_proxy(request.meta.get('proxy', False))
-            print('request error,retrying......')
-            time.sleep(random.randint(3, 5))
-            return self._retry(request, exception, spider)
-
 
 # 随机延时
 class RandomDelayMiddleware(object):
@@ -161,3 +137,27 @@ class RandomDelayMiddleware(object):
         delay = random.randint(0, self.delay)
         logging.debug("### random delay: %s s ###" % delay)
         time.sleep(delay)
+
+# 当请求抛异常时切换另一个代理ip
+class HttpbinProxyMiddleware(object):
+    logger = logging.getLogger(__name__)
+
+    # def process_request(self, request, spider):
+    #     # pro_addr = requests.get('http://127.0.0.1:5000/get').text
+    #     # request.meta['proxy'] = 'http://' + pro_addr
+    #     pass
+    #
+    # def process_response(self, request, response, spider):
+    #     # 可以拿到下载完的response内容，然后对下载完的内容进行修改（修改文本的编码格式等操作）
+    #     pass
+
+    def dele_proxy(self, proxy):
+        requests.get("http://47.107.154.35:5010/delete/?proxy={}".format(proxy))
+
+    def process_exception(self, request, exception, spider):
+        self.logger.debug('Try Exception time')
+        self.dele_proxy(request.meta.get('proxy', False))
+        self.logger.debug('Try second time')
+        thisip = requests.get('http://47.107.154.35:5010/get/').content
+        print("current proxy IP: " + thisip)
+        request.meta["proxy"] = "http://" + thisip

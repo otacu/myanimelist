@@ -58,10 +58,10 @@ ROBOTSTXT_OBEY = False
 #}
 DOWNLOADER_MIDDLEWARES = {
    # 代理中间件配置，只要注释掉就不会跑代理ip的代码
-   # 'scrapy.contrib.downloadermiddleware.httpproxy.HttpProxyMiddleware': 110,
-   # 'myanimelist.middlewares.IpPoolMiddleware': 100,
-   # 'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
-   # 'myanimelist.middlewares.Process_Proxies': 120,
+   'scrapy.contrib.downloadermiddleware.httpproxy.HttpProxyMiddleware': 110,
+   'myanimelist.middlewares.IpPoolMiddleware': 100,
+   'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
+   'myanimelist.middlewares.HttpbinProxyMiddleware': 543,
 }
 
 # Enable or disable extensions
@@ -101,7 +101,7 @@ ITEM_PIPELINES = {
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 custom_settings = {
-        "RANDOM_DELAY": 3,
+        "RANDOM_DELAY": 10,
         "DOWNLOADER_MIDDLEWARES": {
             "middlewares.random_delay_middleware.RandomDelayMiddleware": 999,
         }
