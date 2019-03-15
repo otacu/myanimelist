@@ -2,7 +2,6 @@
 import scrapy
 import re
 import os
-from scrapy.utils.project import get_project_settings
 
 from myanimelist.items import AnimeItem
 
@@ -11,6 +10,14 @@ url_prefix = "https://myanimelist.net/anime/{}"
 
 class AnimeSpider(scrapy.Spider):
     name = 'anime'
+
+    # 只针对这个Spider的配置用custom_settings
+    custom_settings = {
+        # 是否使用配置文件设置要爬的anime_id
+        # "LOAD_ANIME_ID_FROM_FILE": True
+        "LOAD_ANIME_ID_FROM_FILE": False
+    }
+
     allowed_domains = ['myanimelist.net']
     # start_urls = [url_prefix.format(i) for i in range(35790, 35791)]
     start_urls = [url_prefix.format(i) for i in range(1, 40000)]
@@ -21,8 +28,7 @@ class AnimeSpider(scrapy.Spider):
     def start_requests(self):
         # 默认url使用start_urls
         url_list = self.start_urls
-        settings = get_project_settings()
-        load_anime_id_from_file = settings.get('LOAD_ANIME_ID_FROM_FILE', False)
+        load_anime_id_from_file = self.settings.get('LOAD_ANIME_ID_FROM_FILE', False)
         # 如果load_anime_id_from_file设置为true，使用配置文件的animeId
         if load_anime_id_from_file:
             try:

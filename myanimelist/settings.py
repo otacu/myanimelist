@@ -101,11 +101,8 @@ ITEM_PIPELINES = {
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 custom_settings = {
-        "RANDOM_DELAY": 10,
-        "DOWNLOADER_MIDDLEWARES": {
-            "middlewares.random_delay_middleware.RandomDelayMiddleware": 999,
-        }
+    "RANDOM_DELAY": 10,
+    "DOWNLOADER_MIDDLEWARES": {
+        "middlewares.random_delay_middleware.RandomDelayMiddleware": 999,
     }
-# 是否使用配置文件设置要爬的anime_id
-# LOAD_ANIME_ID_FROM_FILE = True
-LOAD_ANIME_ID_FROM_FILE = False
+}
