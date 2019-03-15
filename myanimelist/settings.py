@@ -106,3 +106,6 @@ custom_settings = {
             "middlewares.random_delay_middleware.RandomDelayMiddleware": 999,
         }
     }
+# 是否使用配置文件设置要爬的anime_id
+# LOAD_ANIME_ID_FROM_FILE = True
+LOAD_ANIME_ID_FROM_FILE = False

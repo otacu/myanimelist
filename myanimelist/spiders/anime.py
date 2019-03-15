@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import scrapy
 import re
+import os
+from scrapy.utils.project import get_project_settings
 
 from myanimelist.items import AnimeItem
 
@@ -15,6 +17,35 @@ class AnimeSpider(scrapy.Spider):
     # start_urls = [url_prefix.format(i) for i in range(4015, 4016)]
     # start_urls = [url_prefix.format(i) for i in range(1298, 1299)]
 
+    # 重写start_requests方法
+    def start_requests(self):
+        # 默认url使用start_urls
+        url_list = self.start_urls
+        settings = get_project_settings()
+        load_anime_id_from_file = settings.get('LOAD_ANIME_ID_FROM_FILE', False)
+        # 如果load_anime_id_from_file设置为true，使用配置文件的animeId
+        if load_anime_id_from_file:
+            try:
+                url_list_from_file = []
+                # 获取当前文件路径
+                current_path = os.path.abspath(__file__)
+                # 获取当前文件的父目录
+                father_path = os.path.abspath(os.path.dirname(current_path) + os.path.sep + "..")
+                # 父目录的父目录 与anime_id_config.txt拼接
+                config_file_path = os.path.join(os.path.abspath(os.path.dirname(father_path)), 'anime_id_config.txt')
+                with open(config_file_path, 'r') as f:
+                    lines = f.readlines()
+                for i in range(0, len(lines)):
+                    anime_id = lines[i].rstrip('\n')
+                    url_from_file = url_prefix.format(anime_id)
+                    url_list_from_file.append(url_from_file)
+                url_list = url_list_from_file
+            except:
+                pass
+        for url in url_list:
+            yield self.make_requests_from_url(url)
+
+    # 重写make_requests_from_url方法
     def make_requests_from_url(self, url):
         self.logger.debug('Try first time')
         return scrapy.Request(url=url, meta={'download_timeout': 10}, callback=self.parse, dont_filter=False)
