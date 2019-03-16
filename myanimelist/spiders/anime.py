@@ -133,7 +133,7 @@ class AnimeSpider(scrapy.Spider):
         except:
             pass
         # 主题曲
-        themeSongSel = sel.xpath('td[2]/div[1]/table/tr[2]/td[1]/div[3]')
+        themeSongSel = sel.xpath('td[2]/div[1]/table/tr[2]/td[1]/div[@class="di-t"]')
         themeSongs = []
         try:
             openingThemeDetailList = themeSongSel.xpath('div[1]/div/span/text()').extract()
@@ -186,12 +186,12 @@ class AnimeSpider(scrapy.Spider):
         item['themeSongs'] = themeSongs
 
         # 根据内页地址爬取
-        tab_list = sel.xpath('td[2]/div[1]/div[1]/ul[1]/li/a/text()').extract()
+        tab_list = sel.xpath('td[2]/div[1]/div[@id="horiznav_nav"]/ul[1]/li/a/text()').extract()
         characters_staff_url = ''
         for tab_index in range(len(tab_list)):
             if tab_list[tab_index] == 'Characters & Staff':
                 tab_index_str = bytes(tab_index + 1)
-                characters_staff_url = sel.xpath('td[2]/div[1]/div[1]/ul[1]/li[' + tab_index_str + ']/a/@href').extract()[0]
+                characters_staff_url = sel.xpath('td[2]/div[1]/div[@id="horiznav_nav"]/ul[1]/li[' + tab_index_str + ']/a/@href').extract()[0]
                 break
         yield scrapy.Request(characters_staff_url, meta={'item': item}, callback=self.characters_staff_parse)
 
