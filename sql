@@ -52,7 +52,7 @@ CREATE TABLE `tb_myanimelist_anime_themesong` (
   `singer` varchar(255) DEFAULT NULL COMMENT '演唱者',
   `type` varchar(10) DEFAULT NULL COMMENT '类型',
   PRIMARY KEY (`idx`),
-  UNIQUE KEY `unique_index` (`anime_id`,`name`,`type`) USING BTREE,
+  UNIQUE KEY `unique_index` (`anime_id`,`name`,`type`,`singer`) USING BTREE,
   KEY `index_anime_en_name` (`anime_en_name`) USING BTREE,
   KEY `index_anime_jp_name` (`anime_jp_name`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

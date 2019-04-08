@@ -19,10 +19,9 @@ class AnimeSpider(scrapy.Spider):
     }
 
     allowed_domains = ['myanimelist.net']
-    # start_urls = [url_prefix.format(i) for i in range(35790, 35791)]
+    # start_urls = [url_prefix.format(i) for i in range(39235, 39236)]
     start_urls = [url_prefix.format(i) for i in range(1, 40000)]
-    # start_urls = [url_prefix.format(i) for i in range(4015, 4016)]
-    # start_urls = [url_prefix.format(i) for i in range(1298, 1299)]
+    # start_urls = [url_prefix.format(i) for i in range(1234, 1235)]
 
     # 重写start_requests方法
     def start_requests(self):
@@ -64,20 +63,28 @@ class AnimeSpider(scrapy.Spider):
         try:
             item['pic'] = sel.xpath('td[1]/div/div[1]/a/img/@src').extract()[0]
         except:
-            pass
+            item['pic'] = ''
         try:
             item['animeId'] = sel.xpath('td[1]/div/div[3]/input[@id="myinfo_anime_id"]/@value').extract()[0]
         except:
             pass
-        try:
-            enName_array = sel.xpath('td[1]/div/div[6]/text()').extract()
-            item['enName'] = ''.join(enName_array).strip()
-        except:
-            pass
-        # 有些动画页会多了一个Synonyms:属性
-        title7 = sel.xpath('td[1]/div/div[7]/span/text()').extract()[0]
         extra = 0
-        if title7 != 'Japanese:':
+        # 有些动画页没有enName属性
+        title6 = sel.xpath('td[1]/div/div[6]/span/text()').extract()[0]
+        if title6 == 'Japanese:':
+            extra = -1
+            item['enName'] = ''
+        # elif title6 == 'Synonyms:':
+        #     item['enName'] = ''
+        else:
+            try:
+                enName_array = sel.xpath('td[1]/div/div[6]/text()').extract()
+                item['enName'] = ''.join(enName_array).strip()
+            except:
+                pass
+        # 有些动画页会多了一个Synonyms:属性
+        title8 = sel.xpath('td[1]/div/div[8]/span/text()').extract()[0]
+        if title8 == 'Japanese:':
             extra = 1
         try:
             jpname_index = bytes(7 + extra)
@@ -89,11 +96,15 @@ class AnimeSpider(scrapy.Spider):
             type_index = bytes(8 + extra)
             item['type'] = sel.xpath('td[1]/div/div['+type_index+']/a/text()').extract()[0]
         except:
-            pass
+            # 有些type没有a标签
+            type_array = sel.xpath('td[1]/div/div['+type_index+']/text()').extract()
+            item['type'] = ''.join(type_array).strip()
         try:
             episodes_index = bytes(9 + extra)
             episodes_array = sel.xpath('td[1]/div/div['+episodes_index+']/text()').extract()
             item['episodes'] = ''.join(episodes_array).strip()
+            if item['episodes'] == 'Unknown':
+                item['episodes'] = 0
         except:
             pass
         premiered_index = bytes(12 + extra)
@@ -106,7 +117,8 @@ class AnimeSpider(scrapy.Spider):
             try:
                 item['premiered'] = sel.xpath('td[1]/div/div['+premiered_index+']/a/text()').extract()[0]
             except:
-                pass
+                aired_array = sel.xpath('td[1]/div/div[11]/text()').extract()
+                item['premiered'] = ''.join(aired_array).strip()
         else:
             producers_index = bytes(12 + extra)
             studios_index = bytes(14 + extra)
@@ -116,7 +128,7 @@ class AnimeSpider(scrapy.Spider):
                 aired_array = sel.xpath('td[1]/div/div['+aired_index+']/text()').extract()
                 item['premiered'] = ''.join(aired_array).strip()
             except:
-                pass
+                item['premiered'] = ''
         try:
             producerArray = sel.xpath('td[1]/div/div['+producers_index+']/a/text()').extract()
             item['producers'] = ','.join(producerArray).strip()
@@ -143,11 +155,11 @@ class AnimeSpider(scrapy.Spider):
                 animeThemeSong = AnimeThemeSong()
                 animeThemeSong.setType('op')
                 try:
-                    songNameList = re.findall(r"\"(.+)\" by", openingThemeDetail)
-                    animeThemeSong.setName(songNameList[0])
-                    tempList = re.findall(r"\" by (.+)", openingThemeDetail)
+                    songNameList = re.findall(r"\"(.+)\"(.*) by", openingThemeDetail)
+                    animeThemeSong.setName(''.join(songNameList[0]).strip())
+                    tempList = re.findall(r"\"(.*) by (.+)", openingThemeDetail)
                     # 用（划分，为了把演唱者抠出来
-                    tempList2 = re.split('\\(+', tempList[0])
+                    tempList2 = re.split('\\(+', tempList[0][1])
                     singer = ''
                     if (len(tempList2) > 2):
                         singer = (tempList2[0] + '(' + tempList2[1]).strip()
@@ -155,7 +167,8 @@ class AnimeSpider(scrapy.Spider):
                         singer = tempList2[0].strip()
                     animeThemeSong.setSinger(singer)
                 except:
-                    pass
+                    print("##########################################################")
+                    print(openingThemeDetail)
                 themeSongs.append(animeThemeSong)
         except:
             pass
@@ -167,19 +180,22 @@ class AnimeSpider(scrapy.Spider):
                 animeThemeSong = AnimeThemeSong()
                 animeThemeSong.setType('ed')
                 try:
-                    songNameList = re.findall(r"\"(.+)\" by", endingThemeDetail)
-                    animeThemeSong.setName(songNameList[0])
-                    tempList = re.findall(r"\" by (.+)", endingThemeDetail)
+                    songNameList = re.findall(r"\"(.+)\"(.*) by", endingThemeDetail)
+                    animeThemeSong.setName(''.join(songNameList[0]).strip())
+                    tempList = re.findall(r"\"(.*) by (.+)", endingThemeDetail)
                     # 用（划分，为了把演唱者抠出来
-                    tempList2 = re.split('\\(+', tempList[0])
+                    tempList2 = re.split('\\(+', tempList[0][1])
                     singer = ''
                     if (len(tempList2) > 2):
                         singer = (tempList2[0] + '(' + tempList2[1]).strip()
                     else:
                         singer = tempList2[0].strip()
+
                     animeThemeSong.setSinger(singer)
                 except:
-                    pass
+                    print("##########################################################")
+
+                    print(endingThemeDetail)
                 themeSongs.append(animeThemeSong)
         except:
             pass
